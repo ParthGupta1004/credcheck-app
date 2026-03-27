@@ -23,8 +23,10 @@ export async function POST(request: NextRequest) {
     if (userRole === "admin") {
       const userCount = await db.user.count();
       if (userCount > 0) {
-        // Not the first user! Downgrade to student for security
-        userRole = "student";
+        return NextResponse.json(
+          { error: "Admin registration is restricted. Only the first user can be an admin." },
+          { status: 403 }
+        );
       }
     }
 
