@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       const userCount = await db.user.count();
       if (userCount > 0) {
         return NextResponse.json(
-          { error: "Admin registration is restricted. Only the first user can be an admin." },
+          { error: "Admin registration is restricted." },
           { status: 403 }
         );
       }
