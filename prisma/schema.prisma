@@ -1,0 +1,142 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  password      String?  // For credentials authentication
+  image         String?
+  role          String   @default("student") // "student" | "verifier" | "admin"
+  college       String?
+  degree        String?
+  batch         String?
+  verified      Boolean  @default(false)
+  emailVerified DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  certificates      Certificate[]
+  verifierRequests  VerifierRequest[]
+  verifiedCerts     Certificate[] @relation("VerifiedCerts")
+  abuseReports      AbuseReport[]
+  accounts          Account[]
+  sessions          Session[]
+  notifications     Notification[]
+}
+
+model Certificate {
+  id             String   @id @default(cuid())
+  studentId      String
+  title          String
+  organization   String
+  description    String?
+  fileUrl        String?
+  fileName       String?
+  verifierEmail  String
+  verifierId     String?
+  status         String   @default("pending") // "pending" | "verified" | "rejected"
+  comments       String?
+  publicLinkId   String?   @unique
+  qrCodeUrl      String?
+  issuedAt       DateTime?
+  verifiedAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  student        User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  verifier       User?      @relation("VerifiedCerts", fields: [verifierId], references: [id])
+  abuseReports   AbuseReport[]
+}
+
+model VerifierRequest {
+  id               String   @id @default(cuid())
+  userId           String
+  organizationName String
+  organizationEmail String
+  status           String   @default("pending") // "pending" | "approved" | "rejected"
+  description      String?
+  website          String?
+  logoUrl          String?
+  requestedAt      DateTime @default(now())
+  reviewedAt       DateTime?
+
+  // Relations
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AbuseReport {
+  id            String   @id @default(cuid())
+  certificateId String
+  reporterId    String
+  reason        String
+  status        String   @default("pending") // "pending" | "reviewed" | "resolved"
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  certificate   Certificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  reporter      User        @relation(fields: [reporterId], references: [id])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // "CERTIFICATE_SUBMITTED", "CERTIFICATE_APPROVED", "CERTIFICATE_REJECTED", "SYSTEM"
+  isRead    Boolean  @default(false)
+  link      String?  // Optional relative URL to click on
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
