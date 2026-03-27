@@ -17,7 +17,16 @@ export async function POST(request: NextRequest) {
 
     // Validate role
     const validRoles = ["student", "verifier", "admin"];
-    const userRole = validRoles.includes(role) ? role : "student";
+    let userRole = validRoles.includes(role) ? role : "student";
+
+    // If attempting to be an admin, check if ANY user already exists
+    if (userRole === "admin") {
+      const userCount = await db.user.count();
+      if (userCount > 0) {
+        // Not the first user! Downgrade to student for security
+        userRole = "student";
+      }
+    }
 
     // Check if user already exists
     const existingUser = await db.user.findUnique({
